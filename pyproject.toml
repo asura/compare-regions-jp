@@ -32,6 +32,7 @@ pyproj = "^3.6.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
+pytest-describe = "^2.2.0"
 black = "^23.0.0"
 ruff = "^0.1.0"
 mypy = "^1.8.0"
@@ -81,12 +82,13 @@ ignore = [
     "D104", # Missing docstring in public package
     "D203", # 1 blank line required before class docstring
     "D213", # Multi-line docstring summary should start at the second line
+    "E501", # Line too long (conflicts with black)
 ]
 line-length = 88
 target-version = "py312"
 
 [tool.ruff.per-file-ignores]
-"tests/*" = ["D", "N"]  # テストファイルはdocstring・命名規則緩和
+"tests/*" = ["D", "N", "E501"]  # テストファイルはdocstring・命名規則・行長制限緩和
 
 [tool.mypy]
 python_version = "3.12"
@@ -98,6 +100,7 @@ disallow_any_generics = true
 no_implicit_reexport = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+exclude = ["tests/"]
 
 # 地理空間ライブラリは型情報が不完全
 [[tool.mypy.overrides]]

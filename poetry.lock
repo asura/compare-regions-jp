@@ -1344,6 +1344,20 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
 
 [[package]]
+name = "pytest-describe"
+version = "2.2.0"
+description = "Describe-style plugin for pytest"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytest-describe-2.2.0.tar.gz", hash = "sha256:39bb05eb90f2497d9ca342ef9a0b7fa5bada7e58505aec33f66d661d631955b7"},
+    {file = "pytest_describe-2.2.0-py3-none-any.whl", hash = "sha256:bd9e2c73acb4b9522a8400823d98f5b6a081667d3bfd7243a8598336896b544d"},
+]
+
+[package.dependencies]
+pytest = ">=4.6,<9"
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -1698,4 +1712,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "b1879c05ff3bc57785228f22c7f6ffee2fb985acc55028e069b1c5bb8c2b35a4"
+content-hash = "5af6f257630691247f72d8cd3cbecaba91284811a1b1f61fdbf271c27356b7bc"

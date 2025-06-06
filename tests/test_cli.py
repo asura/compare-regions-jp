@@ -1,24 +1,153 @@
-"""CLI テスト"""
+from pathlib import Path
+from unittest.mock import Mock, patch
 
-from click.testing import CliRunner
-from compare_regions_jp.cli import cli
+import geopandas as gpd
+import pytest
+from compare_regions_jp.cli import (
+    calculate_bounding_box,
+    count_stations_in_area,
+    display_comparison,
+    download_and_cache_data,
+    find_station,
+    load_railway_data,
+    main,
+)
+from shapely.geometry import Point
 
 
-def test_cli_help():
-    """ヘルプが表示される"""
-    runner = CliRunner()
-    result = runner.invoke(cli, ['--help'])
-    assert result.exit_code == 0
-    assert 'compare' in result.output
+def describe_データ管理():
+    def describe_キャッシュ機能():
+        @patch("compare_regions_jp.cli.CACHE_FILE")
+        @patch("compare_regions_jp.cli.urlretrieve")
+        def 初回ダウンロード時にキャッシュファイルを作成(mock_urlretrieve, mock_cache_file):
+            mock_cache_file.exists.return_value = False
+            mock_cache_file.parent.mkdir = Mock()
+
+            download_and_cache_data()
+
+            mock_urlretrieve.assert_called_once()
+
+        @patch("compare_regions_jp.cli.CACHE_FILE")
+        def キャッシュファイルが存在する場合はダウンロードしない(mock_cache_file):
+            mock_cache_file.exists.return_value = True
+
+            result = download_and_cache_data()
+
+            assert result == mock_cache_file
 
 
-def test_compare_command_basic():
-    """基本的な比較コマンド"""
-    runner = CliRunner()
-    result = runner.invoke(cli, [
-        'compare',
-        '--addr-a', '東京都港区赤坂',
-        '--addr-b', '東京都新宿区新宿'
-    ])
-    # 現状は実装中なのでエラーにならないことを確認
-    assert result.exit_code == 0
+def describe_駅検索():
+    def 完全一致検索で駅が見つかる():
+        gdf = gpd.GeoDataFrame(
+            {
+                "駅名": ["東京", "新宿", "渋谷"],
+                "geometry": [
+                    Point(139.7, 35.7),
+                    Point(139.7, 35.7),
+                    Point(139.7, 35.7),
+                ],
+            }
+        )
+
+        result = find_station(gdf, "東京")
+
+        assert len(result) == 1
+        assert result.iloc[0]["駅名"] == "東京"
+
+    def 存在しない駅名でエラー終了():
+        gdf = gpd.GeoDataFrame(
+            {"駅名": ["東京", "新宿"], "geometry": [Point(139.7, 35.7), Point(139.7, 35.7)]}
+        )
+
+        with pytest.raises(SystemExit):
+            find_station(gdf, "存在しない駅")
+
+
+def describe_矩形計算():
+    def 中心座標から正しい境界ボックスを計算():
+        lat, lon = 35.0, 139.0
+        width, height = 0.1, 0.1
+
+        minx, miny, maxx, maxy = calculate_bounding_box(lat, lon, width, height)
+
+        assert minx == 138.95
+        assert maxx == 139.05
+        assert miny == 34.95
+        assert maxy == 35.05
+
+
+def describe_本数集計():
+    def エリア内駅の運行本数を正しく合計():
+        gdf = gpd.GeoDataFrame(
+            {
+                "駅名": ["A駅", "B駅", "C駅"],
+                "本数": [100, 200, 50],
+                "geometry": [
+                    Point(139.0, 35.0),  # エリア内
+                    Point(139.01, 35.01),  # エリア内
+                    Point(140.0, 36.0),  # エリア外
+                ],
+            }
+        )
+        bbox = (138.99, 34.99, 139.02, 35.02)
+
+        total = count_stations_in_area(gdf, bbox)
+
+        assert total == 300  # 100 + 200
+
+    def 本数データがない場合は0として扱う():
+        gdf = gpd.GeoDataFrame({"駅名": ["A駅"], "geometry": [Point(139.0, 35.0)]})
+        bbox = (138.99, 34.99, 139.01, 35.01)
+
+        total = count_stations_in_area(gdf, bbox)
+
+        assert total == 0
+
+
+def describe_CLI():
+    @patch("compare_regions_jp.cli.load_railway_data")
+    def 必須引数が全て提供された場合に正常実行(mock_load_data):
+        mock_gdf = gpd.GeoDataFrame(
+            {"駅名": ["東京", "新宿"], "geometry": [Point(139.7, 35.7), Point(139.7, 35.7)]}
+        )
+        mock_load_data.return_value = mock_gdf
+
+        with patch(
+            "sys.argv",
+            ["cli.py", "-s1", "東京", "-s2", "新宿", "-w", "0.1", "--height", "0.1"],
+        ):
+            with patch("compare_regions_jp.cli.display_comparison"):
+                main()
+
+    def 必須引数不足でヘルプ表示():
+        with patch("sys.argv", ["cli.py"]):
+            with pytest.raises(SystemExit):
+                main()
+
+
+def describe_ダウンロード():
+    @patch("compare_regions_jp.cli.CACHE_FILE")
+    @patch("compare_regions_jp.cli.console")
+    def ダウンロード時にメッセージ表示(mock_console, mock_cache_file):
+        mock_cache_file.exists.return_value = False
+
+        with patch("compare_regions_jp.cli.urlretrieve"):
+            download_and_cache_data()
+
+        assert mock_console.print.call_count == 2
+
+    @patch("compare_regions_jp.cli.download_and_cache_data")
+    def データファイル読み込み(mock_download):
+        mock_download.return_value = Path("/tmp/test.geojson")
+
+        with patch("geopandas.read_file") as mock_read:
+            load_railway_data()
+            mock_read.assert_called_once()
+
+
+def describe_表示():
+    @patch("compare_regions_jp.cli.console")
+    def 比較結果を正しく表示(mock_console):
+        display_comparison("東京", (35.7, 139.7), 100, "新宿", (35.7, 139.7), 80, 0.1, 0.1)
+
+        mock_console.print.assert_called_once()
