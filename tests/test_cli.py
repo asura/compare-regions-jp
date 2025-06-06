@@ -81,7 +81,10 @@ def describe_本数集計():
         gdf = gpd.GeoDataFrame(
             {
                 "駅名": ["A駅", "B駅", "C駅"],
-                "本数": [100, 200, 50],
+                "着数1": [10, 20, 5],
+                "発数1": [15, 25, 10],
+                "着数2": [30, 40, 15],
+                "発数2": [45, 115, 20],
                 "geometry": [
                     Point(139.0, 35.0),  # エリア内
                     Point(139.01, 35.01),  # エリア内
@@ -91,16 +94,23 @@ def describe_本数集計():
         )
         bbox = (138.99, 34.99, 139.02, 35.02)
 
-        total = count_stations_in_area(gdf, bbox)
+        arrivals, departures, total = count_stations_in_area(gdf, bbox)
 
+        # A駅: 着=10+30=40, 発=15+45=60, 計=100
+        # B駅: 着=20+40=60, 発=25+115=140, 計=200
+        # C駅: エリア外
+        assert arrivals == 100  # 40 + 60
+        assert departures == 200  # 60 + 140
         assert total == 300  # 100 + 200
 
     def 本数データがない場合は0として扱う():
         gdf = gpd.GeoDataFrame({"駅名": ["A駅"], "geometry": [Point(139.0, 35.0)]})
         bbox = (138.99, 34.99, 139.01, 35.01)
 
-        total = count_stations_in_area(gdf, bbox)
+        arrivals, departures, total = count_stations_in_area(gdf, bbox)
 
+        assert arrivals == 0
+        assert departures == 0
         assert total == 0
 
 
@@ -148,6 +158,15 @@ def describe_ダウンロード():
 def describe_表示():
     @patch("compare_regions_jp.cli.console")
     def 比較結果を正しく表示(mock_console):
-        display_comparison("東京", (35.7, 139.7), 100, "新宿", (35.7, 139.7), 80, 0.1, 0.1)
+        display_comparison(
+            "東京",
+            (35.7, 139.7),
+            (40, 60, 100),
+            "新宿",
+            (35.7, 139.7),
+            (30, 50, 80),
+            0.1,
+            0.1,
+        )
 
         mock_console.print.assert_called_once()
