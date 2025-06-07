@@ -16,6 +16,9 @@ poetry install
 # 基本コマンド
 python -m compare_regions_jp.cli -s1 渋谷 -s2 有楽町 --width 0.016 --height 0.015
 
+# データソース・ライセンス情報表示
+python -m compare_regions_jp.cli --about
+
 # ヘルプ表示
 python -m compare_regions_jp.cli --help
 ```
@@ -24,7 +27,8 @@ python -m compare_regions_jp.cli --help
 - `-s1, --station1`: 1つ目の駅名（完全一致、必須）
 - `-s2, --station2`: 2つ目の駅名（完全一致、必須）
 - `-w, --width`: 矩形幅（度単位、必須）
-- `--height`: 矩形高さ（度単位、必須）
+- `-h, --height`: 矩形高さ（度単位、必須）
+- `--about`: データソース・ライセンス情報を表示
 
 ### 実行例
 ```bash
@@ -56,3 +60,25 @@ python -m compare_regions_jp.cli -s1 東京 -s2 品川 --width 0.020 --height 0.
 - 初回実行時にデータを自動ダウンロードします
 - 駅名は完全一致で検索されます
 - 矩形サイズの目安: 0.016×0.015度 ≈ 徒歩10分圏
+
+## 📄 データライセンス・謝辞
+
+### 使用データ
+本ツールは以下のオープンデータを使用しています：
+
+**全国鉄道運行本数データ**
+- 提供元: [GTFS-GIS.jp](https://gtfs-gis.jp/railway_honsu/)
+- データ名: 路線別・駅別発着本数データ2024
+- ライセンス: CC BY 4.0, ODbL
+
+### ライセンス条項
+- **CC BY 4.0**: データの利用、改変、再配布が可能（著作者クレジット表示が必要）
+- **ODbL**: データベースの利用、改変、再配布が可能（同じライセンスでの提供が必要）
+
+### 謝辞
+素晴らしいオープンデータを提供いただいている西澤先生をはじめとするGTFS-GIS.jpの関係者の皆様に深く感謝申し上げます。このデータにより、日本全国の鉄道ネットワークの分析が可能になっています。
+
+詳細なライセンス条項については、[GTFS-GIS.jp](https://gtfs-gis.jp/railway_honsu/)をご確認ください。
+
+## 📋 ライセンス
+本ソフトウェア自体のライセンスについては[LICENSE](LICENSE)ファイルをご確認ください。

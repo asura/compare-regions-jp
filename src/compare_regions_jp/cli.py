@@ -1,7 +1,7 @@
-import argparse
 from pathlib import Path
 from urllib.request import urlretrieve
 
+import click
 import geopandas as gpd
 from rich.console import Console
 from rich.table import Table
@@ -20,7 +20,9 @@ def download_and_cache_data() -> Path:
         return CACHE_FILE
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    console.print(f"[blue]データをダウンロード中: {DATA_URL}[/blue]")
+    console.print("📄 データライセンス: CC BY 4.0, ODbL")
+    console.print("📍 データ提供: GTFS-GIS.jp")
+    console.print(f"⬇️  鉄道運行本数データをダウンロード中: {DATA_URL}")
     urlretrieve(DATA_URL, CACHE_FILE)
     console.print(f"[green]キャッシュに保存: {CACHE_FILE}[/green]")
     return CACHE_FILE
@@ -81,6 +83,32 @@ def count_stations_in_area(
     return total_arrivals, total_departures, total_trains
 
 
+def show_about_info() -> None:
+    """データソース・ライセンス情報を表示"""
+    console.print("📊 [bold]Compare Regions JP[/bold]")
+    console.print("2駅周辺エリアの鉄道運行本数比較ツール\n")
+
+    console.print("📄 [bold]データソース[/bold]")
+    console.print("• データ名: 路線別・駅別発着本数データ2024")
+    console.print("• 提供元: GTFS-GIS.jp")
+    console.print("• URL: https://gtfs-gis.jp/railway_honsu/")
+    console.print("• ライセンス: CC BY 4.0, ODbL")
+    console.print()
+
+    console.print("🙏 [bold]謝辞[/bold]")
+    console.print("素晴らしいオープンデータを提供いただいている")
+    console.print("西澤先生をはじめとするGTFS-GIS.jpの関係者の皆様に")
+    console.print("深く感謝申し上げます。")
+    console.print()
+
+    console.print("⚖️  [bold]ライセンス条項[/bold]")
+    console.print("• CC BY 4.0: データの利用・改変・再配布可能（著作者クレジット表示必須）")
+    console.print("• ODbL: データベースの利用・改変・再配布可能（同ライセンス提供必須）")
+    console.print()
+
+    console.print("🔗 詳細: https://gtfs-gis.jp/railway_honsu/")
+
+
 def display_comparison(
     station1_name: str,
     station1_coords: tuple[float, float],
@@ -116,20 +144,38 @@ def display_comparison(
     console.print(table)
 
 
-def main() -> None:
-    """メイン処理."""
-    parser = argparse.ArgumentParser(description="駅周辺エリアの運行本数を比較")
-    parser.add_argument("-s1", "--station1", required=True, help="駅名1（必須）")
-    parser.add_argument("-s2", "--station2", required=True, help="駅名2（必須）")
-    parser.add_argument("-w", "--width", type=float, required=True, help="矩形幅（度、必須）")
-    parser.add_argument("--height", type=float, required=True, help="矩形高さ（度、必須）")
+@click.command()  # type: ignore[misc]
+@click.option("-s1", "--station1", help="1つ目の駅名（完全一致）")  # type: ignore[misc]
+@click.option("-s2", "--station2", help="2つ目の駅名（完全一致）")  # type: ignore[misc]
+@click.option("-w", "--width", type=float, help="矩形幅（度単位）")  # type: ignore[misc]
+@click.option("-h", "--height", type=float, help="矩形高さ（度単位）")  # type: ignore[misc]
+@click.option("--about", is_flag=True, help="データソース・ライセンス情報を表示")  # type: ignore[misc]
+def main(
+    station1: str | None,
+    station2: str | None,
+    width: float | None,
+    height: float | None,
+    about: bool,
+) -> None:
+    """2駅周辺エリアの鉄道運行本数を比較"""
+    if about:
+        show_about_info()
+        return
 
-    args = parser.parse_args()
+    # --aboutオプション以外では必須チェック
+    if not station1 or not station2 or width is None or height is None:
+        console.print("[bold red]エラー: -s1, -s2, -w, -h は必須です[/bold red]")
+        console.print(
+            "使用方法: python -m compare_regions_jp.cli -s1 駅名1 -s2 駅名2 -w 幅 -h 高さ"
+        )
+        console.print("ヘルプ: python -m compare_regions_jp.cli --help")
+        console.print("情報表示: python -m compare_regions_jp.cli --about")
+        exit(1)
 
     gdf = load_railway_data()
 
-    station1_data = find_station(gdf, args.station1)
-    station2_data = find_station(gdf, args.station2)
+    station1_data = find_station(gdf, station1)
+    station2_data = find_station(gdf, station2)
 
     station1_point = station1_data.geometry.iloc[0]
     station2_point = station2_data.geometry.iloc[0]
@@ -138,24 +184,24 @@ def main() -> None:
     station2_coords = (station2_point.y, station2_point.x)
 
     bbox1 = calculate_bounding_box(
-        station1_coords[0], station1_coords[1], args.width, args.height
+        station1_coords[0], station1_coords[1], width, height
     )
     bbox2 = calculate_bounding_box(
-        station2_coords[0], station2_coords[1], args.width, args.height
+        station2_coords[0], station2_coords[1], width, height
     )
 
     station1_trains = count_stations_in_area(gdf, bbox1)
     station2_trains = count_stations_in_area(gdf, bbox2)
 
     display_comparison(
-        args.station1,
+        station1,
         station1_coords,
         station1_trains,
-        args.station2,
+        station2,
         station2_coords,
         station2_trains,
-        args.width,
-        args.height,
+        width,
+        height,
     )
 
 
