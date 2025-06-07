@@ -39,6 +39,7 @@ venv.bak/
 
 # Testing
 .coverage
+coverage.xml
 .pytest_cache/
 .tox/
 .nox/

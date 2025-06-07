@@ -127,7 +127,9 @@ def describe_CLI():
             ["cli.py", "-s1", "東京", "-s2", "新宿", "-w", "0.1", "--height", "0.1"],
         ):
             with patch("compare_regions_jp.cli.display_comparison"):
-                main()
+                with pytest.raises(SystemExit) as exc_info:
+                    main()
+                assert exc_info.value.code == 0
 
     def 必須引数不足でヘルプ表示():
         with patch("sys.argv", ["cli.py"]):
@@ -144,7 +146,7 @@ def describe_ダウンロード():
         with patch("compare_regions_jp.cli.urlretrieve"):
             download_and_cache_data()
 
-        assert mock_console.print.call_count == 2
+        assert mock_console.print.call_count == 4
 
     @patch("compare_regions_jp.cli.download_and_cache_data")
     def データファイル読み込み(mock_download):
