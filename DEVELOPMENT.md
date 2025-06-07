@@ -124,31 +124,103 @@ tests/
     └── sample_poi_data.json
 ```
 
+### テストコード規約
+
+#### 基本ルール
+1. **pytest-describe を使用**: テスト構造を階層化
+2. **test_ プレフィックスなし**: describe内の関数は日本語名
+3. **docstring不要**: 関数名で意図を表現
+4. **1関数1assertion**: 失敗原因の特定を容易にする
+
+```python
+def describe_設定管理():
+    """設定管理のテスト"""
+
+    def describe_デフォルト値():
+        def APIタイムアウトのデフォルト値は30():
+            settings = AppSettings()
+            assert settings.api_timeout == 30
+
+        def APIキーのデフォルト値はNone():
+            settings = AppSettings()
+            assert settings.api_key is None
+
+    def describe_環境変数読み込み():
+        def APIキーを環境変数から読み込む():
+            with patch.dict(os.environ, {"COMPARE_REGIONS_API_KEY": "test-key"}):
+                settings = AppSettings()
+                assert settings.api_key == "test-key"
+
+    def describe_異常系():
+        def 無効なログレベルでエラーが発生する():
+            with pytest.raises(ValidationError) as exc_info:
+                AppSettings(log_level="INVALID")
+            assert "ログレベルは" in str(exc_info.value)
+```
+
+#### ❌ 避けるべきパターン
+```python
+# 複数assertionで失敗箇所が分からない
+def test_multiple_assertions():
+    settings = AppSettings()
+    assert settings.api_timeout == 30      # これが失敗すると
+    assert settings.api_key is None        # こちらは実行されない
+    assert settings.debug is False         # こちらも実行されない
+
+# test_プレフィックス使用
+def test_api_timeout_default():
+    """テスト関数にdocstringは不要"""
+    pass
+```
+
+#### ✅ 推奨パターン
+```python
+# 1つのテスト関数につき1つのassertion
+def describe_AppSettings():
+    def describe_デフォルト値():
+        def APIタイムアウトのデフォルト値は30():
+            settings = AppSettings()
+            assert settings.api_timeout == 30
+
+        def APIキーのデフォルト値はNone():
+            settings = AppSettings()
+            assert settings.api_key is None
+
+        def デバッグモードのデフォルト値はFalse():
+            settings = AppSettings()
+            assert settings.debug is False
+```
+
 ### テストケース設計
 各機能について以下の3パターンを必ず実装：
 
 ```python
-# 1. 正常系テスト
-def test_poi_count_success():
-    """正常なPOI取得のテスト"""
-    
-# 2. 異常系テスト  
-def test_poi_count_network_error():
-    """ネットワークエラー時のテスト"""
-    
-# 3. 境界値テスト
-def test_poi_count_empty_region():
-    """空の地域での動作テスト"""
+def describe_POI取得():
+    def describe_正常系():
+        def 正常なPOI取得が成功する():
+            # 成功ケースのテスト
+            pass
+
+    def describe_異常系():
+        def ネットワークエラー時に適切に例外が発生する():
+            # エラーケースのテスト
+            pass
+
+    def describe_境界値():
+        def 空の地域でも正常に動作する():
+            # 境界値ケースのテスト
+            pass
 ```
 
 ### モック使用
 外部API呼び出しは必ずモック化：
 
 ```python
-@patch('requests.get')
-def test_osm_api_call(mock_get):
-    mock_get.return_value.json.return_value = SAMPLE_OSM_DATA
-    # テスト実装
+def describe_OSM_API():
+    @patch('requests.get')
+    def API呼び出しが成功する(mock_get):
+        mock_get.return_value.json.return_value = SAMPLE_OSM_DATA
+        # テスト実装
 ```
 
 ## 🔧 開発ワークフロー
@@ -165,7 +237,7 @@ def test_osm_api_call(mock_get):
 # 自動実行される項目
 poetry run black src/ tests/     # フォーマット
 poetry run ruff check src/ tests/  # リント
-poetry run mypy src/             # 型チェック  
+poetry run mypy src/             # 型チェック
 poetry run pytest               # テスト実行
 ```
 
@@ -210,7 +282,7 @@ POI機能作って
 ### 自動チェック項目
 - **テストカバレッジ**: 85%以上
 - **型チェック**: mypy strict mode 通過
-- **リント**: ruff チェック通過  
+- **リント**: ruff チェック通過
 - **フォーマット**: black 統一
 
 ### 手動レビュー項目
@@ -243,7 +315,7 @@ logger = logging.getLogger("compare_regions_jp")
 # GDAL関連エラー
 sudo apt-get install gdal-bin libgdal-dev
 
-# Shapely エラー  
+# Shapely エラー
 poetry add shapely --extras proj
 ```
 
