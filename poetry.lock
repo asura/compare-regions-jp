@@ -1381,6 +1381,20 @@ files = [
 pytest = ">=4.6,<9"
 
 [[package]]
+name = "pytest-spec"
+version = "3.2.0"
+description = "Library pytest-spec is a pytest plugin to display test execution output like a SPECIFICATION."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pytest-spec-3.2.0.tar.gz", hash = "sha256:4af154588195f4bb6c62d6ca030a20218db7d80b675a08897d9a99239ea3d087"},
+    {file = "pytest_spec-3.2.0-py2.py3-none-any.whl", hash = "sha256:128dd1e133c72d6a18b28ed96d0af0fc43aece8f796ebcfcd81c850f0094b62e"},
+]
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -1749,4 +1763,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "eba360aba4b640fdcd9ad177e8fa77c2cf0f6ca1a15405cf84919440d718140d"
+content-hash = "e344d775b6c7ce2d884dda6895e78db26ce9f00ecf6ad2e68ad5758bf3bc1a00"
