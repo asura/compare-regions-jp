@@ -1,37 +1,30 @@
-from pathlib import Path
-from urllib.request import urlretrieve
-
 import click
 import geopandas as gpd
 from rich.console import Console
 from rich.table import Table
 from shapely.geometry import box
 
+from compare_regions_jp.data.railway import RailwayDataLoader
+
 console = Console()
-
-DATA_URL = "https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_eki.geojson"
-CACHE_DIR = Path.home() / ".compare-regions-jp" / "data"
-CACHE_FILE = CACHE_DIR / "unkohonsu2024_rosen_eki.geojson"
-
-
-def download_and_cache_data() -> Path:
-    """GeoJSONデータをダウンロードしてキャッシュする."""
-    if CACHE_FILE.exists():
-        return CACHE_FILE
-
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    console.print("📄 データライセンス: CC BY 4.0, ODbL")
-    console.print("📍 データ提供: GTFS-GIS.jp")
-    console.print(f"⬇️  鉄道運行本数データをダウンロード中: {DATA_URL}")
-    urlretrieve(DATA_URL, CACHE_FILE)
-    console.print(f"[green]キャッシュに保存: {CACHE_FILE}[/green]")
-    return CACHE_FILE
 
 
 def load_railway_data() -> gpd.GeoDataFrame:
     """鉄道データを読み込む."""
-    data_file = download_and_cache_data()
-    return gpd.read_file(data_file)
+    loader = RailwayDataLoader()
+    result = loader.load_railway_data()
+
+    if result.data is None:
+        console.print("[bold red]エラー: 鉄道データの取得に失敗しました[/bold red]")
+        exit(1)
+
+    # デバッグ情報表示
+    if result.cached:
+        console.print(f"[dim]キャッシュから取得 ({result.load_time_seconds:.2f}秒)[/dim]")
+    else:
+        console.print(f"[dim]データダウンロード完了 ({result.load_time_seconds:.2f}秒)[/dim]")
+
+    return result.data
 
 
 def find_station(gdf: gpd.GeoDataFrame, station_name: str) -> gpd.GeoDataFrame:
@@ -144,12 +137,12 @@ def display_comparison(
     console.print(table)
 
 
-@click.command()  # type: ignore[misc]
-@click.option("-s1", "--station1", help="1つ目の駅名（完全一致）")  # type: ignore[misc]
-@click.option("-s2", "--station2", help="2つ目の駅名（完全一致）")  # type: ignore[misc]
-@click.option("-w", "--width", type=float, help="矩形幅（度単位）")  # type: ignore[misc]
-@click.option("-h", "--height", type=float, help="矩形高さ（度単位）")  # type: ignore[misc]
-@click.option("--about", is_flag=True, help="データソース・ライセンス情報を表示")  # type: ignore[misc]
+@click.command()
+@click.option("-s1", "--station1", help="1つ目の駅名（完全一致）")
+@click.option("-s2", "--station2", help="2つ目の駅名（完全一致）")
+@click.option("-w", "--width", type=float, help="矩形幅（度単位）")
+@click.option("-h", "--height", type=float, help="矩形高さ（度単位）")
+@click.option("--about", is_flag=True, help="データソース・ライセンス情報を表示")
 def main(
     station1: str | None,
     station2: str | None,

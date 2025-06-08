@@ -25,6 +25,7 @@ class DataLoadResult:
         load_time_seconds: ロード時間（秒）
         cache_path: キャッシュファイルのパス（存在する場合）
         metadata: 追加のメタデータ
+
     """
 
     data: Any
@@ -48,6 +49,7 @@ class DataLoadError(Exception):
             message: エラーメッセージ
             source: データソース
             original_error: 元の例外
+
         """
         super().__init__(message)
         self.source = source
@@ -80,6 +82,7 @@ class BaseDataLoader(ABC):
             cache_enabled: キャッシュ機能の有効/無効
             cache_ttl_hours: キャッシュ有効期限（時間）。Noneの場合は設定値を使用
             cache_dir: キャッシュディレクトリ。Noneの場合は設定値を使用
+
         """
         settings = get_settings()
         self.cache_enabled = cache_enabled and settings.cache_enabled
@@ -108,6 +111,7 @@ class BaseDataLoader(ABC):
         ------
             DataLoadError: データロードに失敗した場合
             CacheError: キャッシュ操作に失敗した場合
+
         """
         start_time = time.time()
 
@@ -175,6 +179,7 @@ class BaseDataLoader(ABC):
         Raises:
         ------
             DataLoadError: ロードに失敗した場合
+
         """
         pass
 
@@ -190,6 +195,7 @@ class BaseDataLoader(ABC):
         Raises:
         ------
             CacheError: 保存に失敗した場合
+
         """
         pass
 
@@ -208,6 +214,7 @@ class BaseDataLoader(ABC):
         Raises:
         ------
             CacheError: 読み込みに失敗した場合
+
         """
         pass
 
@@ -224,6 +231,7 @@ class BaseDataLoader(ABC):
         Returns:
         -------
             キャッシュファイルパス
+
         """
         # ソースとパラメータからハッシュ値を生成
         cache_key = f"{source}_{sorted(kwargs.items())}"
@@ -245,6 +253,7 @@ class BaseDataLoader(ABC):
         Returns:
         -------
             キャッシュが有効な場合True
+
         """
         if not cache_path.exists():
             return False
@@ -260,6 +269,7 @@ class BaseDataLoader(ABC):
         ----
             message: エラーメッセージ
             cache_path: 問題のあるキャッシュファイルパス
+
         """
         # デバッグ設定の場合はエラーを出力
         settings = get_settings()
@@ -287,6 +297,7 @@ class BaseDataLoader(ABC):
         Returns:
         -------
             削除されたファイル数
+
         """
         if not self.cache_enabled or not self.cache_dir.exists():
             return 0
@@ -320,6 +331,7 @@ class BaseDataLoader(ABC):
         Returns
         -------
             キャッシュ情報の辞書
+
         """
         if not self.cache_enabled or not self.cache_dir.exists():
             return {

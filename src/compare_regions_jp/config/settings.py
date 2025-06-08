@@ -11,7 +11,7 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AppSettings(BaseSettings):  # type: ignore[misc]
+class AppSettings(BaseSettings):
     """アプリケーション設定クラス。
 
     環境変数から設定を読み取り、デフォルト値を提供する。

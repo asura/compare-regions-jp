@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import geopandas as gpd
@@ -7,7 +6,6 @@ from compare_regions_jp.cli import (
     calculate_bounding_box,
     count_stations_in_area,
     display_comparison,
-    download_and_cache_data,
     find_station,
     load_railway_data,
     main,
@@ -17,23 +15,23 @@ from shapely.geometry import Point
 
 def describe_データ管理():
     def describe_キャッシュ機能():
-        @patch("compare_regions_jp.cli.CACHE_FILE")
-        @patch("compare_regions_jp.cli.urlretrieve")
-        def 初回ダウンロード時にキャッシュファイルを作成(mock_urlretrieve, mock_cache_file):
-            mock_cache_file.exists.return_value = False
-            mock_cache_file.parent.mkdir = Mock()
+        @patch("compare_regions_jp.cli.RailwayDataLoader")
+        def RailwayDataLoaderを使用してデータ取得(mock_loader_class: Mock) -> None:
+            mock_loader = Mock()
+            mock_result = Mock()
+            mock_result.data = gpd.GeoDataFrame(
+                {"駅名": ["テスト駅"], "geometry": [Point(139.7, 35.7)]}
+            )
+            mock_result.cached = False
+            mock_result.load_time_seconds = 1.0
+            mock_loader.load_railway_data.return_value = mock_result
+            mock_loader_class.return_value = mock_loader
 
-            download_and_cache_data()
+            result = load_railway_data()
 
-            mock_urlretrieve.assert_called_once()
-
-        @patch("compare_regions_jp.cli.CACHE_FILE")
-        def キャッシュファイルが存在する場合はダウンロードしない(mock_cache_file):
-            mock_cache_file.exists.return_value = True
-
-            result = download_and_cache_data()
-
-            assert result == mock_cache_file
+            assert isinstance(result, gpd.GeoDataFrame)
+            mock_loader_class.assert_called_once()
+            mock_loader.load_railway_data.assert_called_once()
 
 
 def describe_駅検索():
@@ -115,12 +113,18 @@ def describe_本数集計():
 
 
 def describe_CLI():
-    @patch("compare_regions_jp.cli.load_railway_data")
-    def 必須引数が全て提供された場合に正常実行(mock_load_data):
+    @patch("compare_regions_jp.cli.RailwayDataLoader")
+    def 必須引数が全て提供された場合に正常実行(mock_loader_class: Mock) -> None:
+        mock_loader = Mock()
+        mock_result = Mock()
         mock_gdf = gpd.GeoDataFrame(
             {"駅名": ["東京", "新宿"], "geometry": [Point(139.7, 35.7), Point(139.7, 35.7)]}
         )
-        mock_load_data.return_value = mock_gdf
+        mock_result.data = mock_gdf
+        mock_result.cached = False
+        mock_result.load_time_seconds = 1.0
+        mock_loader.load_railway_data.return_value = mock_result
+        mock_loader_class.return_value = mock_loader
 
         with patch(
             "sys.argv",
@@ -138,28 +142,28 @@ def describe_CLI():
 
 
 def describe_ダウンロード():
-    @patch("compare_regions_jp.cli.CACHE_FILE")
-    @patch("compare_regions_jp.cli.console")
-    def ダウンロード時にメッセージ表示(mock_console, mock_cache_file):
-        mock_cache_file.exists.return_value = False
+    @patch("compare_regions_jp.cli.RailwayDataLoader")
+    def RailwayDataLoaderでダウンロード処理(mock_loader_class: Mock) -> None:
+        mock_loader = Mock()
+        mock_result = Mock()
+        mock_result.data = gpd.GeoDataFrame(
+            {"駅名": ["テスト駅"], "geometry": [Point(139.7, 35.7)]}
+        )
+        mock_result.cached = False
+        mock_result.load_time_seconds = 1.0
+        mock_loader.load_railway_data.return_value = mock_result
+        mock_loader_class.return_value = mock_loader
 
-        with patch("compare_regions_jp.cli.urlretrieve"):
-            download_and_cache_data()
+        result = load_railway_data()
 
-        assert mock_console.print.call_count == 4
-
-    @patch("compare_regions_jp.cli.download_and_cache_data")
-    def データファイル読み込み(mock_download):
-        mock_download.return_value = Path("/tmp/test.geojson")
-
-        with patch("geopandas.read_file") as mock_read:
-            load_railway_data()
-            mock_read.assert_called_once()
+        assert isinstance(result, gpd.GeoDataFrame)
+        mock_loader_class.assert_called_once()
+        mock_loader.load_railway_data.assert_called_once()
 
 
 def describe_表示():
     @patch("compare_regions_jp.cli.console")
-    def 比較結果を正しく表示(mock_console):
+    def 比較結果を正しく表示(mock_console: Mock) -> None:
         display_comparison(
             "東京",
             (35.7, 139.7),

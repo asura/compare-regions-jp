@@ -41,6 +41,7 @@ mypy = "^1.8.0"
 pre-commit = "^3.6.0"
 ipython = "^8.0.0"
 types-requests = "^2.31.0"
+types-click = "^7.1.0"
 
 [tool.poetry.scripts]
 compare-regions-jp = "compare_regions_jp.cli:cli"
